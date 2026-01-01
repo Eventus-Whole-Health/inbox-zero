@@ -3,6 +3,10 @@ import { log } from "next-axiom";
 import { serializeError } from "serialize-error";
 import { env } from "@/env";
 
+// NOTE: Application Insights and Seq logging disabled for local dev
+// The applicationinsights package breaks Next.js Turbopack bundling
+// These are no-op stubs - re-enable for production Docker builds
+
 export type Logger = ReturnType<typeof createScopedLogger>;
 
 type LogLevel = "info" | "error" | "warn" | "trace";
@@ -55,13 +59,29 @@ export function createScopedLogger(scope: string) {
       return msg;
     };
 
+    // Helper to send logs to additional backends (disabled for local dev)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const sendToBackends = (
+      level: LogLevel,
+      message: string,
+      args: unknown[],
+    ) => {
+      // No-op: Application Insights and Seq logging disabled for local dev
+    };
+
     return {
-      info: (message: string, ...args: unknown[]) =>
-        console.log(formatMessage("info", message, args)),
-      error: (message: string, ...args: unknown[]) =>
-        console.error(formatMessage("error", message, args)),
-      warn: (message: string, ...args: unknown[]) =>
-        console.warn(formatMessage("warn", message, args)),
+      info: (message: string, ...args: unknown[]) => {
+        console.log(formatMessage("info", message, args));
+        sendToBackends("info", message, args);
+      },
+      error: (message: string, ...args: unknown[]) => {
+        console.error(formatMessage("error", message, args));
+        sendToBackends("error", message, args);
+      },
+      warn: (message: string, ...args: unknown[]) => {
+        console.warn(formatMessage("warn", message, args));
+        sendToBackends("warn", message, args);
+      },
       trace: (
         message: string,
         ...args: Array<unknown> | [() => unknown] | [() => unknown[]]
@@ -71,6 +91,7 @@ export function createScopedLogger(scope: string) {
         const resolved = typeof first === "function" ? first() : args;
         const finalArgs = Array.isArray(resolved) ? resolved : [resolved];
         console.log(formatMessage("trace", message, finalArgs));
+        sendToBackends("trace", message, finalArgs);
       },
       with: (newFields: Record<string, unknown>) =>
         createLogger({ ...fields, ...newFields }),
@@ -82,31 +103,50 @@ export function createScopedLogger(scope: string) {
 }
 
 function createAxiomLogger(scope: string) {
-  const createLogger = (fields: Record<string, unknown> = {}) => ({
-    info: (message: string, args?: Record<string, unknown>) =>
-      log.info(message, hashSensitiveFields({ scope, ...fields, ...args })),
-    error: (message: string, args?: Record<string, unknown>) =>
-      log.error(
-        message,
-        hashSensitiveFields({ scope, ...fields, ...formatError(args) }),
-      ),
-    warn: (message: string, args?: Record<string, unknown>) =>
-      log.warn(message, hashSensitiveFields({ scope, ...fields, ...args })),
-    trace: (
+  const createLogger = (fields: Record<string, unknown> = {}) => {
+    // Helper to send to additional backends (disabled for local dev)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const sendToAdditionalBackends = (
+      level: "info" | "error" | "warn" | "debug",
       message: string,
-      args?: Record<string, unknown> | (() => Record<string, unknown>),
+      args?: Record<string, unknown>,
     ) => {
-      if (!env.ENABLE_DEBUG_LOGS) return;
-      const resolved = typeof args === "function" ? args() : args;
-      log.debug(
-        message,
-        hashSensitiveFields({ scope, ...fields, ...resolved }),
-      );
-    },
-    with: (newFields: Record<string, unknown>) =>
-      createLogger({ ...fields, ...newFields }),
-    flush: () => log.flush(),
-  });
+      // No-op: Application Insights and Seq logging disabled for local dev
+    };
+
+    return {
+      info: (message: string, args?: Record<string, unknown>) => {
+        log.info(message, hashSensitiveFields({ scope, ...fields, ...args }));
+        sendToAdditionalBackends("info", message, args);
+      },
+      error: (message: string, args?: Record<string, unknown>) => {
+        log.error(
+          message,
+          hashSensitiveFields({ scope, ...fields, ...formatError(args) }),
+        );
+        sendToAdditionalBackends("error", message, args);
+      },
+      warn: (message: string, args?: Record<string, unknown>) => {
+        log.warn(message, hashSensitiveFields({ scope, ...fields, ...args }));
+        sendToAdditionalBackends("warn", message, args);
+      },
+      trace: (
+        message: string,
+        args?: Record<string, unknown> | (() => Record<string, unknown>),
+      ) => {
+        if (!env.ENABLE_DEBUG_LOGS) return;
+        const resolved = typeof args === "function" ? args() : args;
+        log.debug(
+          message,
+          hashSensitiveFields({ scope, ...fields, ...resolved }),
+        );
+        sendToAdditionalBackends("debug", message, resolved);
+      },
+      with: (newFields: Record<string, unknown>) =>
+        createLogger({ ...fields, ...newFields }),
+      flush: () => log.flush(),
+    };
+  };
 
   return createLogger();
 }

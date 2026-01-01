@@ -3,6 +3,10 @@ import * as Sentry from "@sentry/nextjs";
 
 export function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    // NOTE: Application Insights/Seq logging disabled for local dev
+    // The applicationinsights package breaks Next.js Turbopack bundling
+    // Re-enable for production Docker builds
+
     // this is your Sentry.init call from `sentry.server.config.js|ts`
     Sentry.init({
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
