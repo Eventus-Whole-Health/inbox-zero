@@ -242,17 +242,51 @@ export async function queryBatchMessages(
 
   if (hasSearchQuery) {
     // Search path - use $search parameter
-    logger.info("Using search path", {
+    // NOTE: Using direct fetch instead of SDK due to SDK JSON parsing issues
+    // See: https://github.com/microsoftgraph/msgraph-sdk-javascript/issues/998
+    logger.info("Using search path with direct fetch", {
       rawSearchQuery,
       effectiveSearchQuery,
       queryWasSanitized: wasSanitized,
       folderFilter,
     });
 
-    request = request.search(effectiveSearchQuery!);
+    // Build URL manually to avoid URL encoding of $ in parameter names
+    const searchTerm = effectiveSearchQuery!.replace(/^"|"$/g, "");
+    const url = `https://graph.microsoft.com/v1.0/me/messages?$select=${encodeURIComponent(MESSAGE_SELECT_FIELDS)}&$top=${maxResults}&$search="${encodeURIComponent(searchTerm)}"`;
 
+    logger.info("Direct fetch to Graph API", { url });
+
+    // Use native fetch - minimal headers only (Prefer header causes streaming issues)
+    const fetchResponse = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${client.getAccessToken()}`,
+      },
+    });
+
+    logger.info("Graph API fetch response", {
+      status: fetchResponse.status,
+      statusText: fetchResponse.statusText,
+      contentLength: fetchResponse.headers.get("content-length"),
+      transferEncoding: fetchResponse.headers.get("transfer-encoding"),
+    });
+
+    if (!fetchResponse.ok) {
+      const errorText = await fetchResponse.text();
+      throw new Error(
+        `Graph API search failed: ${fetchResponse.status} ${errorText}`,
+      );
+    }
+
+    // Try json() directly instead of text() + parse()
     const response: { value: Message[]; "@odata.nextLink"?: string } =
-      await withOutlookRetry(() => request.get(), logger);
+      await fetchResponse.json();
+
+    logger.info("Graph API response parsed", {
+      messageCount: response.value?.length ?? 0,
+      hasNextLink: !!response["@odata.nextLink"],
+    });
 
     // Filter to specific folder if requested, otherwise get all
     const filteredMessages = folderId
