@@ -170,6 +170,8 @@ async function executeDelayedAction({
       cc: actionItem.cc,
       bcc: actionItem.bcc,
       url: actionItem.url,
+      folderId: actionItem.folderId,
+      folderName: actionItem.folderName,
       executedRule: {
         connect: { id: scheduledAction.executedRuleId },
       },
