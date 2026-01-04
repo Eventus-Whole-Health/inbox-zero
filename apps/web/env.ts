@@ -50,6 +50,7 @@ export const env = createEnv({
       .default("google/gemini-2.5-flash"),
 
     OPENAI_API_KEY: z.string().optional(),
+    OPENAI_BASE_URL: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
     BEDROCK_ACCESS_KEY: z.string().optional(),
     BEDROCK_SECRET_KEY: z.string().optional(),
@@ -67,6 +68,18 @@ export const env = createEnv({
     UPSTASH_REDIS_URL: z.string().optional(),
     UPSTASH_REDIS_TOKEN: z.string().optional(),
     REDIS_URL: z.string().optional(), // used for subscriptions
+
+    // Logging - Application Insights
+    APPLICATIONINSIGHTS_CONNECTION_STRING: z.string().optional(),
+
+    // Logging - Seq
+    SEQ_SERVER_URL: z.string().optional(),
+    SEQ_API_KEY: z.string().optional(),
+
+    // Application metadata for logging
+    APP_NAME: z.string().optional().default("inbox-zero"),
+    APP_VERSION: z.string().optional().default("1.0.0"),
+    AZURE_REGION: z.string().optional().default("eastus2"),
 
     QSTASH_TOKEN: z.string().optional(),
     QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
