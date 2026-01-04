@@ -58,6 +58,8 @@ export async function executeScheduledAction(
       cc: scheduledAction.cc,
       bcc: scheduledAction.bcc,
       url: scheduledAction.url,
+      folderId: scheduledAction.folderId,
+      folderName: scheduledAction.folderName,
     };
 
     const executedAction = await executeDelayedAction({
