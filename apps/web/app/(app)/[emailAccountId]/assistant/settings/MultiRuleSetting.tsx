@@ -6,15 +6,17 @@ import { enableMultiRuleSelectionAction } from "@/utils/actions/rule";
 import { toastError } from "@/components/Toast";
 import { SettingCard } from "@/components/SettingCard";
 import { useEmailAccountFull } from "@/hooks/useEmailAccountFull";
+import { useAccount } from "@/providers/EmailAccountProvider";
 import { useAction } from "next-safe-action/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingContent } from "@/components/LoadingContent";
 
 export function MultiRuleSetting() {
   const { data, isLoading, error, mutate } = useEmailAccountFull();
+  const { emailAccountId } = useAccount();
 
   const { execute } = useAction(
-    enableMultiRuleSelectionAction.bind(null, data?.id ?? ""),
+    enableMultiRuleSelectionAction.bind(null, emailAccountId),
     {
       onSuccess: () => {
         mutate();
