@@ -1,0 +1,50 @@
+properties:
+  managedEnvironmentId: /subscriptions/57aa22c1-1b18-40c5-ab91-0d9c9059d0a9/resourceGroups/rg-keystone-platform/providers/Microsoft.App/managedEnvironments/keystone-platform-aca-env
+  configuration:
+    secrets:
+      - name: redis-password
+        value: 73be6a7935e53781ca3fd49651c8596b7b52661e880df919b44112123b164c69
+      - name: redis-token
+        value: 8f1e726285febc101f62de5b3b04084b77998654be3ea0a7008d3642cb266c18
+    ingress:
+      external: false
+      targetPort: 80
+  template:
+    containers:
+      - image: alpine:latest
+        name: eventus-apps-redis-upstash
+        command:
+          - /bin/sh
+        args:
+          - -c
+          - |
+            set -e
+            echo "Installing Redis and dependencies..."
+            apk add --no-cache redis curl wget
+
+            echo "Starting Redis server..."
+            redis-server --bind 127.0.0.1 --port 6379 --requirepass "${REDIS_PASSWORD}" --daemonize yes
+
+            echo "Waiting for Redis to start..."
+            sleep 3
+
+            echo "Downloading serverless-redis-http..."
+            wget -q -O /usr/local/bin/redis-http https://github.com/hiett/serverless-redis-http/releases/download/v0.1.0/serverless-redis-http-linux-amd64
+            chmod +x /usr/local/bin/redis-http
+
+            echo "Starting HTTP proxy on port 80..."
+            SRH_MODE=env \
+            SRH_TOKEN="${REDIS_TOKEN}" \
+            SRH_CONNECTION_STRING="redis://default:${REDIS_PASSWORD}@127.0.0.1:6379" \
+            /usr/local/bin/redis-http
+        env:
+          - name: REDIS_PASSWORD
+            secretRef: redis-password
+          - name: REDIS_TOKEN
+            secretRef: redis-token
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+    scale:
+      minReplicas: 1
+      maxReplicas: 1

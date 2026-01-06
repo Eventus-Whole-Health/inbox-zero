@@ -1,0 +1,12 @@
+api_base: "/v1"
+deployment_config:
+  - deployment_name: "gpt-5-chat"
+    model_name: "gpt-5-chat-latest"
+    endpoint: "https://equip-openai.openai.azure.com/"
+    api_key: "a64fd6043c724893a57fcb507f4aa6fe"
+    api_version: "2025-04-01-preview"
+  - deployment_name: "gpt-4o-mini"
+    model_name: "gpt-4o-mini"
+    endpoint: "https://equip-openai.openai.azure.com/"
+    api_key: "a64fd6043c724893a57fcb507f4aa6fe"
+    api_version: "2025-04-01-preview"
