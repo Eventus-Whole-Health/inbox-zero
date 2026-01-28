@@ -47,5 +47,6 @@ jobs:
           tags: |
             ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
             ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Disabled GitHub Actions cache to avoid storage quota issues
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
